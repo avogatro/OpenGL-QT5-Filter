@@ -4,7 +4,8 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui multimedia multimediawidgets
+
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,8 +14,19 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        filterdemo.cpp
+        filterdemo.cpp \
+    videoframesurface.cpp \
+    glwidget.cpp
 
-HEADERS  += filterdemo.h
+HEADERS  += filterdemo.h \
+    videoframesurface.h \
+    glwidget.h
 
-FORMS    += filterdemo.ui
+FORMS    +=
+
+CONFIG += c++11
+
+DISTFILES +=
+
+RESOURCES     = textures.qrc \
+    glsl.qrc

@@ -1,7 +1,18 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
-    <qresource prefix="/">
-        <file>vshader.glsl</file>
-        <file>fshader.glsl</file>
+    <qresource prefix="">
+		<file>assets/shader/0shaderf.glsl</file>
+        <file>assets/shader/0shaderv.glsl</file>
+        <file>assets/shader/1shaderf.glsl</file>
+        <file>assets/shader/1shaderv.glsl</file>
+		<file>assets/shader/2shaderf.glsl</file>
+		<file>assets/shader/3shaderf.glsl</file>
+		<file>assets/shader/4shaderf.glsl</file>
+		<file>assets/shader/5shaderf.glsl</file>
+		<file>assets/shader/5shaderv.glsl</file>
+		<file>assets/shader/6shaderf.glsl</file>
+		<file>assets/shader/7shaderf.glsl</file>
+		<file>assets/shader/8shaderf.glsl</file>
+		
     </qresource>
 </RCC>

@@ -39,11 +39,9 @@
 ****************************************************************************/
 
 #include "glwidget.h"
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QMouseEvent>
 
-GLWidget::GLWidget(QWidget *parent)
+
+GLWidget::GLWidget (VideoFrameSurface* frameSource,QWidget *parent)
     : QOpenGLWidget(parent),
       clearColor(Qt::black),
       xRot(0),
@@ -52,6 +50,9 @@ GLWidget::GLWidget(QWidget *parent)
       program(0)
 {
     memset(textures, 0, sizeof(textures));
+
+    videoFrameSurface = frameSource;
+
 }
 
 GLWidget::~GLWidget()
@@ -61,18 +62,12 @@ GLWidget::~GLWidget()
     for (int i = 0; i < 6; ++i)
         delete textures[i];
     delete program;
+    delete texture2;
+
     doneCurrent();
+
 }
 
-QSize GLWidget::minimumSizeHint() const
-{
-    return QSize(50, 50);
-}
-
-QSize GLWidget::sizeHint() const
-{
-    return QSize(200, 200);
-}
 
 void GLWidget::rotateBy(int xAngle, int yAngle, int zAngle)
 {
@@ -97,70 +92,131 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_TEXTURE_2D) ;
 #define PROGRAM_VERTEX_ATTRIBUTE 0
 #define PROGRAM_TEXCOORD_ATTRIBUTE 1
 
-    QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
-    const char *vsrc =
-        "attribute highp vec4 vertex;\n"
-        "attribute mediump vec4 texCoord;\n"
-        "varying mediump vec4 texc;\n"
-        "uniform mediump mat4 matrix;\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_Position = matrix * vertex;\n"
-        "    texc = texCoord;\n"
-        "}\n";
-    vshader->compileSourceCode(vsrc);
 
-    QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
-    const char *fsrc =
-        "uniform sampler2D texture;\n"
-        "varying mediump vec4 texc;\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_FragColor = texture2D(texture, texc.st);\n"
-        "}\n";
-    fshader->compileSourceCode(fsrc);
 
-    program = new QOpenGLShaderProgram;
-    program->addShader(vshader);
-    program->addShader(fshader);
-    program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
-    program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
-    program->link();
+        program = new QOpenGLShaderProgram;
+        program->addShaderFromSourceFile(QOpenGLShader::Vertex, vertexShaderFilename);
 
-    program->bind();
-    program->setUniformValue("texture", 0);
+
+        // Compile fragment shade
+        program->addShaderFromSourceFile(QOpenGLShader::Fragment, fragementShaderFilename);
+
+
+        program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
+        program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
+        program->bindAttributeLocation("texCoord1", PROGRAM_TEXCOORD_ATTRIBUTE);
+        program->link();
+
+        program->bind();
+
+        program->setUniformValue("texture", 0);
+
+
+
+//        const float ambientLight[] = { 0.2, 0.2, 0.2, 1.0 };
+//        const float specularLight[] = { 1.0, 1.0, 1.0, 1.0 };
+//        const float specularity[] = { 1.0, 1.0, 1.0, 1.0 };
+//        const float shininess[] = { 60.0 };
+//        QVector4D lightPosition = { 0.0, 50.0, 50.0, 1.0 };
+
+//        program->setUniformValue("lightSource",lightPosition);
+
 }
 
-void GLWidget::paintGL()
-{
+void GLWidget::paintGL() {
     glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    QMatrix4x4 m;
-    m.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 15.0f);
-    m.translate(0.0f, 0.0f, -10.0f);
-    m.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
-    m.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
-    m.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);
+    QMatrix4x4 matrix;
 
-    program->setUniformValue("matrix", m);
+
+    const auto aratio = float( this->width() ) / float( this->height() );
+    matrix.setToIdentity();
+    matrix.ortho( -aratio, aratio, +1.0f, -1.0f, 4.0f, 15.0f);
+
+    matrix.translate(0.0f, 0.0f, -10.0f);
+    matrix.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
+    matrix.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
+    matrix.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);
+
+    program->setUniformValue("matrix", matrix);
     program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
     program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
     program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 5 * sizeof(GLfloat));
     program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 3 * sizeof(GLfloat), 2, 5 * sizeof(GLfloat));
 
+
+
+    program->setUniformValue("lightPos", QVector3D(-1.0,0.0,-1.0));
+    program->setUniformValue("mambient", QVector3D(0.2,0.2,0.0));
+    program->setUniformValue("mdiffuse", QVector3D(0.3,0.3,0.3));
+    program->setUniformValue("mspecular", QVector3D(0.2,0.2,0.2));
+    program->setUniformValue("lambient", QVector3D(0.2,0.2,0.2));
+    program->setUniformValue("ldiffuse", QVector3D(0.6,0.6,0.6));
+    program->setUniformValue("lspecular", QVector3D(0.6,0.6,0.6));
+    program->setUniformValue("shininess", 0.1f);
+
+
+    QTime current = QTime::currentTime();
+    uint msecs =current.msecsSinceStartOfDay();
+
+    program->setUniformValue("time", float(msecs/1000.0f));
+    program->setUniformValue("resolution", QVector2D(textures[0]->width(),textures[0]->height()));
+    //texture
+    QImage image = this->videoFrameSurface->getLastFrame();
+    if (image.width() != textures[0]->width() || image.height() != textures[0]->height())
+        makeObject();
+
+    //actually faster then setdata, because of warning ouput
+    textures[0]->destroy();
+    textures[0]->create();
+    textures[0]->setData(image);
+   // textures[0] = new QOpenGLTexture(image);
+
+
+    //textures[0]->bind(t1);
+
+
+
+
+
+
+    glActiveTexture(GL_TEXTURE1 );
+
+    glBindTexture(GL_TEXTURE_2D, texture2->textureId());
+
+    program->setUniformValue("texture1", 1);
+
+    glActiveTexture(GL_TEXTURE0 );
+
+    //glUniform1i(t1, 0);
+
     for (int i = 0; i < 6; ++i) {
         textures[i]->bind();
         glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
     }
+
+
 }
+
 void GLWidget::resizeGL(int width, int height)
 {
-    int side = qMin(width, height);
-    glViewport((width - side) / 2, (height - side) / 2, side, side);
+    if (height == 0) {
+        height = 1;
+    }
+
+    QMatrix4x4 pMatrix;
+    pMatrix.setToIdentity();
+    pMatrix.perspective(60.0f, (float) width / (float) height, 0.001f, 1000);
+    glViewport(0, 0, width, height);
+    makeObject();
+
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
@@ -198,22 +254,40 @@ void GLWidget::makeObject()
     };
 
     for (int j = 0; j < 6; ++j)
-        textures[j] = new QOpenGLTexture(QImage(QString(":/images/side%1.png").arg(j + 1)).mirrored());
+        textures[j] = new QOpenGLTexture(QImage(QString(":/assets/images/side%1.png").arg(j + 1)).mirrored());
+
+    //delete textures[0];
+
+    QImage image = videoFrameSurface->getLastFrame();
+    texture2 =new  QOpenGLTexture(QImage(QString(":/assets/images/texture2.jpg")).mirrored());
 
     QVector<GLfloat> vertData;
     for (int i = 0; i < 6; ++i) {
         for (int j = 0; j < 4; ++j) {
             // vertex position
-            vertData.append(0.2 * coords[i][j][0]);
-            vertData.append(0.2 * coords[i][j][1]);
-            vertData.append(0.2 * coords[i][j][2]);
+             float w = float(image.width())/1000.0f;
+             float h = float(image.height())/1000.0f;
+            vertData.append(w * coords[i][j][0]);
+            vertData.append(h * coords[i][j][1]);
+            vertData.append(h * coords[i][j][2]);
             // texture coordinate
             vertData.append(j == 0 || j == 3);
             vertData.append(j == 0 || j == 1);
         }
     }
 
+
+
     vbo.create();
     vbo.bind();
     vbo.allocate(vertData.constData(), vertData.count() * sizeof(GLfloat));
+}
+void GLWidget::setVertexShader(QString filename)
+{
+   this->vertexShaderFilename = filename;
+}
+
+void GLWidget::setFragmentShader(QString filename)
+{
+  this ->fragementShaderFilename = filename;
 }

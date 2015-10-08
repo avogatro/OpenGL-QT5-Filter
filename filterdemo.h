@@ -3,20 +3,39 @@
 
 #include <QMainWindow>
 
-namespace Ui {
-class FilterDemo;
-}
+#include <QMediaPlaylist>
+#include <QMediaPlayer>
+#include <QVideoWidget>
 
-class FilterDemo : public QMainWindow
+
+#include <QWidget>
+#include <QGridLayout>
+#include <QTimer>
+
+#include "videoframesurface.h"
+
+#include "glwidget.h"
+class FilterDemo : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit FilterDemo(QWidget *parent = 0);
+    explicit FilterDemo();
+
     ~FilterDemo();
 
+private slots:
+    void setCurrentGlWidget();
+    void update();
+
+
 private:
-    Ui::FilterDemo *ui;
+
+
+    enum { NumRows = 3, NumColumns = 3 };
+    GLWidget *glWidgets[NumRows][NumColumns];
+    GLWidget *currentGlWidget;
+    VideoFrameSurface* videoFrameSurface;
 };
 
 #endif // FILTERDEMO_H

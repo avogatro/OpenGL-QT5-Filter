@@ -44,22 +44,30 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
+#include <videoframesurface.h>
+#include <QImage>
 
-QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram);
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QMouseEvent>
+#include <QTime>
+
+QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 
+
+//normal Video Player without any Manipulation
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 
 public:
-    explicit GLWidget(QWidget *parent = 0);
+    explicit GLWidget(VideoFrameSurface* frameSource,QWidget *parent= 0 );
     ~GLWidget();
-
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
-    QSize sizeHint() const Q_DECL_OVERRIDE;
     void rotateBy(int xAngle, int yAngle, int zAngle);
     void setClearColor(const QColor &color);
+    void setVertexShader(QString filename);
+    void setFragmentShader(QString filename);
 
 signals:
     void clicked();
@@ -68,11 +76,12 @@ protected:
     void initializeGL() Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int width, int height) Q_DECL_OVERRIDE;
+
+
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
-private:
     void makeObject();
 
     QColor clearColor;
@@ -81,8 +90,14 @@ private:
     int yRot;
     int zRot;
     QOpenGLTexture *textures[6];
+    QOpenGLTexture *texture2;
     QOpenGLShaderProgram *program;
     QOpenGLBuffer vbo;
+    VideoFrameSurface* videoFrameSurface;
+    QMatrix4x4 projection;
+
+    QString vertexShaderFilename = ":/assets/shader/0shaderv.glsl";
+    QString fragementShaderFilename = ":/assets/shader/0shaderf.glsl";
 };
 
 #endif
